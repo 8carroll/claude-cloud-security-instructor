@@ -4,11 +4,34 @@ import requests
 import streamlit as st
 import boto3
 import requests
+import re
 
 
 #Initialize bedroc
 bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-west-2")
 
+def format_markdown(text, topic):
+    # Split the text into sections based on the pattern "Section:"
+    sections = re.split(r'\nSection:', text)
+
+    # Format the title
+    markdown_text = f"# {topic}\n\n"
+
+    # Format the introduction'
+    for section in sections[0:]:
+        lines = section.strip().split('\n')
+        section_title = lines[0]
+        section_content = '\n'.join(lines[1:])
+        markdown_text += f"{section_content}\n\n"
+
+    # Format the remaining sections
+    for section in sections[1:]:
+        lines = section.strip().split('\n')
+        section_title = lines[0]
+        section_content = '\n'.join(lines[1:])
+        markdown_text += f"## {section_title}\n\n{section_content}\n\n"
+
+    return markdown_text
 
 def get_cloud_security_insights(topic):
     try:
@@ -49,9 +72,6 @@ def main():
     # Streamlit UI setup
     st.title('AWS AI Cloud Security Instructor')
 
-    # Streamlit UI setup
-    st.title('AWS Cloud Security Expert Chatbot')
-
     topic = st.text_input('Enter a cloud security topic you would like to learn:')
     topic_folder = "topic"
     os.makedirs(topic_folder, exist_ok=True)
@@ -72,9 +92,9 @@ def main():
             with st.spinner('Fetching insights...'):
                 insights = get_cloud_security_insights(topic)
                 st.markdown(insights)
+                markdown_formatted = format_markdown(insights, topic)
                 with open(markdown_file, "w", encoding="utf-8") as file:
-                    file.write(f"{insights}")
-
+                    file.write(markdown_formatted)
         else:
             st.error('Please enter a topic to continue.')
 
